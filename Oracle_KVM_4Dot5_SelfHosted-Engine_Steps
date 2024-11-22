@@ -1,0 +1,38 @@
+# Migrating a self-hosted engine in KVM 4.5 from one storage to another involves several steps. Let’s break it down:
+
+# Back up the original Manager:
+# Use the engine-backup tool to create a backup of the existing Manager.
+# Deploy a new self-hosted engine:
+# Set up a new self-hosted engine instance.
+# Restore the backup:
+# Restore the backup created in step 1 onto the new self-hosted engine.
+# Enable the Manager repositories:
+# On the new Manager virtual machine, ensure that the Manager repositories are enabled.
+# Reinstall the self-hosted engine nodes:
+# Update the configuration of the self-hosted engine nodes by reinstalling them.
+# Remove the old self-hosted engine storage domain:
+# Clean up the old storage domain associated with the previous storage.
+
+
+# https://lists.ovirt.org/archives/list/users@ovirt.org/thread/QMZTJOHOWH6YY5ROXYKLZJDTC3BXSANS/
+# These are the steps you need to follow
+# how to gracefully stop engine and the HA before maintain the two host-engine servers
+# 1. Shutdown all VMs through oVirt UI except Hosted Engine(HE) VM
+# 2. Then move the HE VM into global maintenance On one of the hosts
+hosted-engine --set-maintenance --mode=global
+
+# 3. Poweroff HE VM.
+hosted-engine --vm-shutdown 
+# (To ensure graceful shutdown check status)
+hosted-engine --vm-status
+# 4. Once the HE VM is down then power off all hosts
+
+
+# https://www.vinchin.com/
+
+# Simplify your OLVM protection with Vinchin Backup & Recovery Easy, smart, cost-effective
+
+
+# Ovirt reference Links
+# https://lists.ovirt.org/archives/list/users@ovirt.org/thread/Y7EPAGSARSUFGYRABDX7M7BNAVBRAFHS/
+# https://www.ovirt.org/documentation/migrating_from_a_standalone_manager_to_a_self-hosted_engine/

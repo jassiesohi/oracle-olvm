@@ -1,0 +1,157 @@
+# Document Started on 02292024
+# Document version 0.1
+
+# Install Cockpit-Machines and Enable Virtualization
+
+# https://docs.oracle.com/en/operating-systems/oracle-linux/cockpit/cockpit-kvm_install_the_cockpit_virtual_machines_module.html#install-the-cockpit-virtual-machines-module
+
+
+# Install the Cockpit-Machines add-on application in the web console
+# Install the Virtualization base packages on the Cockpit host system
+
+# Note:The Virtualization base packages are typically installed on the host system during the Oracle Linux installation. In the case that these packages aren't installed, they must be installed to use the Virtual Machine module in the Cockpit web console.
+
+# Install the Cockpit Virtual Machine add-on application
+sudo dnf install cockpit cockpit-machines
+
+sudo systemctl start cockpit.socket
+sudo systemctl enable cockpit.socket
+sudo systemctl status cockpit.socket
+
+firewall-cmd --permanent --zone=public --add-service=cockpit
+firewall-cmd --reload
+
+# For OEL8
+sudo dnf module install virt
+sudo dnf install virt-install virt-viewer
+
+# For OEL 9
+sudo dnf group install "Virtualization Host" -y && sudo dnf install qemu-kvm virt-install virt-viewer -y
+
+
+# Verify that the Virtualization service is started on host system
+sudo virt-host-validate qemu
+
+
+sudo systemctl start libvirtd.service
+sudo systemctl restart libvirtd.service
+sudo systemctl enable libvirtd.service
+sudo systemctl status libvirtd.service
+
+
+# After that 
+ssh username@vmname
+
+[root@libvirt01 ~]# ls -la /var/lib/libvirt/
+total 4
+drwxr-xr-x.  9 root root  106 Feb 29 20:17 .
+drwxr-xr-x. 39 root root 4096 Feb 29 20:18 ..
+drwx--x--x.  2 root root    6 Nov  2 18:01 boot
+drwxr-xr-x.  2 root root   97 Feb 29 20:23 dnsmasq
+drwx--x--x.  2 root root    6 Nov  2 18:01 filesystems
+drwx--x--x.  2 root root    6 Nov  2 18:01 images
+drwx------.  2 root root    6 Nov  2 18:01 network
+drwxr-x--x.  9 qemu qemu  103 Feb 29 20:23 qemu
+drwx--x--x.  2 root root    6 Nov  2 18:01 swtpm
+
+
+# To enable the root user to log in on Cockpit in Oracle Linux 9.3, you can follow these steps:
+
+# Edit disallowed-users File:
+
+# Open the /etc/cockpit/disallowed-users file using a text editor like nano or vim.
+# Remove Root from disallowed-users:
+
+# Remove the entry for the root user from the disallowed-users file. This allows the root user to log in via Cockpit.
+# Save and Exit:
+
+# Save the changes to the file and exit the text editor.
+# Restart Cockpit Service:
+
+# Restart the Cockpit service to apply the changes:
+
+sudo systemctl restart cockpit
+
+# Verify Root Login:
+
+# Access the Cockpit web console and log in using the root user credentials.
+# By following these steps, you'll enable the root user to log in on Cockpit in Oracle Linux 9.3.
+
+
+# Activate Filesystem from Virtual Machines Storage Pools
+# create Storahe Pool
+# Name as default
+# set the path as /var/lib/libvirt/images & Activate 
+
+Target path
+/var/lib/libvirt/images
+Persistent
+yes
+Autostart
+yes
+Type
+dir
+
+# SSH into a NAT Basesd KVM on OEL
+sudo dnf install libvirt-nss
+
+sudo vi /etc/nsswitch.conf
+
+hosts:      files dns myhostname libvirt_guest # libvirt_guest
+sudo virsh list --all
+sudo virsh reboot vmname # If VM is alrteady running before this activity then reboot to reflect the changes
+
+
+# Create a Network Bridge for KVM on Oracle Linux
+sudo nmcli conn show --active
+
+NAME    UUID                                  TYPE      DEVICE
+ens160  1928faa1-0e82-383c-92ed-d8d78ea474cc  ethernet  ens160
+ens192  c44dbeec-180e-37df-9b18-51257d4637e1  ethernet  ens192
+lo      2685449b-af97-4f83-b526-18bdaa9d6af3  loopback  lo
+
+sudo nmcli conn add type bridge con-name br0 ifname br0
+[root@libvirt02 ~]# sudo nmcli conn add type bridge con-name br0 ifname br0
+Connection 'br0' (176d0af9-aea2-43dd-b0bd-a8170371e078) successfully added.
+
+# If Static IPv4 Address Needed then modify through following commands
+sudo nmcli conn modify br0 ipv4.address '192.168.100.164/24'
+sudo nmcli conn modify br0 ipv4.gateway '192.168.100.1'
+sudo nmcli conn modify br0 ipv4.dns '192.168.100.249, 8.8.8.8'
+sudo nmcli conn modify br0 ipv4.method manual
+
+sudo nmcli conn add type ethernet slave-type bridge con-name bridge-br0 ifname ens160 master br0
+sudo systemctl restart NetworkManager.service
+[root@libvirt02 ~]# sudo nmcli conn add type ethernet slave-type bridge con-name bridge-br0 ifname ens160 master br0
+Connection 'bridge-br0' (47f82486-6f7b-4d2a-899e-60d19993cf49) successfully added.
+
+sudo nmcli conn up br0
+[root@libvirt02 ~]# sudo nmcli conn up br0
+Connection successfully activated (master waiting for slaves) (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/5)
+
+sudo systemctl restart NetworkManager.service
+
+sudo nmcli conn down ens160 # Warning, If Static IP is not set then SSH will disconnect as br0 will be on DHCP
+
+
+sudo nmcli conn show --active
+[root@libvirt02 ~]# sudo nmcli conn show --active
+NAME        UUID                                  TYPE      DEVICE
+ens192      c44dbeec-180e-37df-9b18-51257d4637e1  ethernet  ens192
+br0         176d0af9-aea2-43dd-b0bd-a8170371e078  bridge    br0
+lo          2685449b-af97-4f83-b526-18bdaa9d6af3  loopback  lo
+bridge-br0  47f82486-6f7b-4d2a-899e-60d19993cf49  ethernet  ens160
+
+
+sudo bridge link show 
+[root@libvirt02 ~]# sudo bridge link show
+2: ens160: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 master br0 state forwarding priority 32 cost 100
+
+
+sudo virsh domiflist 
+
+
+# https://serverfault.com/questions/840519/how-to-change-the-default-storage-pool-from-libvirt
+# https://docs.oracle.com/en/learn/ol-kvm/#create-virtual-machine-using-oracle-cloud-images
+
+

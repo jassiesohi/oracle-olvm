@@ -1,0 +1,164 @@
+# Document Started on 02292024
+# Document version 0.1
+
+# Reference Oracle Document
+# https://docs.oracle.com/en/virtualization/oracle-linux-virtualization-manager/admin/admin-admin-tasks.html#nfs-data-prep-top
+
+# NFS Allocation methods to mount as Data Directory for Oracle KVM 4.5
+# Using NFS Storage
+# Before preparing the NFS share, ensure your environment meets the following conditions:
+
+# Ensure that the Manager and KVM host installation are running the Oracle Linux 8.8 or later in an environment with two or more servers where one acts as the Manager host and the other servers act as KVM hosts.
+
+# The installation creates a vdsm:kvm (36:36) user and group in the /etc/passwd and /etc/group directories, respectively.
+
+grep vdsm /etc/passwd
+vdsm:x:36:36:Node Virtualization Manager:/:/sbin/nologin
+
+grep kvm /etc/group
+kvm:x:36:qemu,sanlock
+
+# An Oracle Linux NFS File server that is reachable by your virtualization environment
+
+# To prepare NFS storage
+
+# On a Linux fileserver that has access to the virtualization environment, create a directory that is to be used for the data domain.
+
+mkdir -p /nfs/olv_ovirt/data
+
+# Set the required permissions on the new directory to allow read-write access to the vdsm user (UID 36) and kvmgroup (GID 36)
+
+chown -R 36:36 /nfs/olv_ovirt
+chmod -R 0755 /nfs/olv_ovirt
+
+# Add an entry for the newly created NFS share in the /etc/exports directory on the NFS file server that uses the following format: full-path-of-share-created *(rw,sync,no_subtree_check,all_squash,anonuid=36,anongid=36)
+
+# vi /etc/exports
+# added the following entry
+/nfs/olv_ovirt/data *(rw,sync,no_subtree_check,all_squash,anonuid=36,anongid=36)
+
+# Verify that the entry has been added
+
+# grep "/nfs/olv_ovirt/data" /etc/exports
+/nfs/ol_ovirt/data *(rw,sync,no_subtree_check,all_squash,anonuid=36,anongid=36)
+
+# If you do not want to export the domain share to all servers on the network (denoted by the * before the left parenthesis), you can specify each individual host in your virtualization environment by using the following format: /nfs/ol_ovirt/data hostname-or-ip-address (rw,sync,no_subtree_check,all_squash,anonuid=36,anongid=36)
+
+# For example:
+
+/nfs/olv_ovirt/data hostname-or-ip-address (rw,sync,no_subtree_check,all_squash,anonuid=36,anongid=36)
+
+# Export the NFS share
+
+# exportfs -rv
+
+# Confirm that the added export is available to Oracle Linux Virtualization Manager hosts by using the following showmount commands on the NFS File Server
+
+# Mount on OKVM Manager
+server.example.com:/nfs/olv_ovirt/data
+libvirt01.13infotech.com:/nfs/olv_ovirt/data
+
+# showmount -e | grep pathname-to-domain-share-added
+# showmount -e | grep ip-address-of-host
+
+
+
+# https://docs.oracle.com/en/learn/create_nfs_linux/#introduction
+
+# Install the NFS Utilities Package on the Server Instance
+sudo dnf install -y nfs-utils
+
+# To create a user named "vdsm" with a UID of 36 in Linux, you can use the following command:
+sudo useradd -u 36 vdsm
+
+# To create a group named "kvm" with a GID (Group ID) of 36 in Linux, you can use the following command:
+sudo groupadd -g 36 kvm
+
+
+sudo firewall-cmd --permanent --zone=public --add-service=nfs
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-all
+
+
+# Enable and start the NFS service.
+sudo systemctl enable --now nfs-server
+showmount -e
+
+
+
+
+# If your NFS mount point is low on storage then you can redirect the mount point to other Storage Mount Point
+# Example /nfs/olv_ovirt/data is low space so I am redirecting to /home which has 2 TB Space.
+
+# To redirect a directory in Linux to use storage from another mount point, you can use the mount command with the --bind option. Here's how you can do it:
+
+sudo mount --bind /home /nfs/olv_ovirt/data
+
+# This command mounts the /home directory to /nfs/olv_ovirt/data, effectively redirecting the directory to use storage from the /home mount point. This redirection allows the /nfs/olv_ovirt/data directory to access and use the storage resources available at /home.
+
+# but after this you need to delete vdsm folder inside the /nfs/olv_ovirt/data or try to reassign the permissions
+
+chown -R 36:36 /nfs/olv_ovirt
+chmod -R 0755 /nfs/olv_ovirt
+
+# then try again the mount
+
+
+
+
+
+grep vdsm /etc/passwd
+vdsm:x:36:36:Node Virtualization Manager:/:/sbin/nologin
+
+grep kvm /etc/group
+kvm:x:36:qemu,sanlock
+
+chown -R vdsm:kvm /var/tmp
+chmod -R 0755 /var/tmp
+
+
+
+https://www.ovirt.org/documentation/migrating_from_a_standalone_manager_to_a_self-hosted_engine/
+# Red Hat Enterprise Linux 8
+Prerequisites
+Install the NFS utils package.
+
+# dnf install nfs-utils -y
+To check the enabled versions:
+
+# cat /proc/fs/nfsd/versions
+Enable the following services:
+
+# systemctl enable nfs-server
+# systemctl enable rpcbind
+
+Procedure
+Create the group kvm:
+
+# groupadd kvm -g 36
+Create the user vdsm in the group kvm:
+
+# useradd vdsm -u 36 -g kvm
+Create the storage directory and modify the access rights.
+
+# mkdir /storage
+# chmod 0755 /storage
+# chown 36:36 /storage/
+Add the storage directory to /etc/exports with the relevant permissions.
+
+# vi /etc/exports
+# cat /etc/exports
+ /storage *(rw)
+Restart the following services:
+
+# systemctl restart rpcbind
+# systemctl restart nfs-server
+To see which export are available for a specific IP address:
+
+# exportfs
+ /nfs_server/srv
+               10.46.11.3/24
+ /nfs_server       <world>
+If changes in /etc/exports have been made after starting the services, the exportfs -ra command can be used to reload the changes. After performing all the above stages, the exports directory should be ready and can be tested on a different host to check that it is usable.
+
+

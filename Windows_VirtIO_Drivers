@@ -1,0 +1,25 @@
+
+
+# Reference Oracle Document
+# https://docs.oracle.com/en/operating-systems/oracle-linux/kvm-virtio/kvm-virtio-DownloadingtheOracleVirtIODriversforMicrosoftWindows.html#kvm-virtio-download
+
+# Downloading the Oracle VirtIO Drivers for Microsoft Windows
+# Before you can install the Oracle VirtIO Drivers for Microsoft Windows you must download them from Oracle Software Delivery Cloud or My Oracle Support (MOS).
+
+# To download the Oracle VirtIO Drivers for Microsoft Windows from Oracle Software Delivery Cloud:
+
+# Navigate to https://edelivery.oracle.com and log in.
+
+# Search for Oracle Linux.
+
+# Select DLP: Oracle Linux 8.8.0.0.0 (Oracle Linux), or DLP: Oracle Linux 9.2.0.0.0 (Oracle Linux).
+
+# Important:If you are using Oracle Linux 7, select either package.
+
+# Click Continue.
+
+# In the Platforms / Languages column, select Microsoft Windows x64 (64 bit) in the list and then click Continue.
+
+# Review and accept the Oracle License Agreement and then click Continue.
+
+# Click the file name that has the description: Oracle VirtIO Drivers for Microsoft Windows, Version 2.1.0, and save it to your system

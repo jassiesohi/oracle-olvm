@@ -1,0 +1,106 @@
+# Document Version 1.0
+
+# Steps to Configure Oracle KVM or OLVM (Oracle Linux Virtualization Manager) - StandAlone KVM Manager
+
+# We need DNS or Alias Entries for All Hosts that will act as Hypervisor and KVM Manager
+
+# OS used - Oracle 8
+
+sudo hostnamectl set-hostname "kvm01.13infotech.com"
+sudo hostnamectl set-hostname "kvm02.13infotech.com"
+sudo hostnamectl set-hostname "kvmmgr.13infotech.com"
+
+# Sample for /etc/hosts on all nodes
+
+sudo vi /etc/hosts
+
+192.168.100.160 kvm01 kvm01.13infotech.com
+192.168.100.161 kvm02 kvm02.13infotech.com
+192.168.100.162 kvmmgr kvmmgr.13infotech.com
+
+# kvm host prepration steps - kvm01.13infotech.com & kvm02.13infotech.com
+# Enable the ol8_baseos_latest repository
+dnf config-manager --enable ol8_baseos_latest
+# Install the Oracle Linux Virtualization Manager Release 4.5 package, which automatically enables/disables the required repositories.
+dnf install oracle-ovirt-release-45-el8
+# Use the dnf command to verify that the required repositories are enabled
+# Clear the dnf cache
+dnf clean all                                     
+# List the configured repositories and verify that the required repositories are enabled
+dnf repolist                    
+# The following repositories must be enabled:
+
+ol8_64_baseos_latest
+
+ol8_appstream
+
+ol8_kvm_appstream
+
+ovirt-4.5
+
+ovirt-4.5-extra
+
+ol8_gluster_appstream
+
+(For VDSM) ol8_UEKR7
+
+# If a required repository is not enabled, use the dnf config-manager to enable it.
+dnf config-manager --enable repository
+
+# Activate the Cockpit web console and open the firewall port
+sudo yum install cockpit cockpit-dashboard -y
+systemctl enable --now cockpit.socket
+firewall-cmd --permanent --zone=public --add-service=cockpit
+firewall-cmd --reload           
+
+
+
+# kvm manager installation steps - kvmmgr.13infotech.com
+
+# Enable the ol8_baseos_latest repository.
+dnf config-manager --enable ol8_baseos_latest
+# Install the Oracle Linux Virtualization Manager Release 4.5 package, which automatically enables/disables the required repositories.
+dnf install oracle-ovirt-release-45-el8
+# Clear the dnf cache
+dnf clean all
+# List the configured repositories and verify that the required repositories are enabled
+dnf repolist
+# The following repositories must be enabled:
+
+ol8_baseos_latest
+
+ol8_appstream
+
+ol8_kvm_appstream
+
+ovirt-4.5
+
+ovirt-4.5-extra
+
+ol8_gluster_appstream
+
+(For VDSM) ol8_UEKR7 
+# You will see (For VDSM) ol8_UEKR6 if you are not using ULN method but using Yum Repo Method
+
+
+# Install the Manager using the ovirt-engine command
+dnf install ovirt-engine
+
+# Configuring the Engine
+engine-setup
+
+Please use the user 'admin@internal' and password specified in order to login
+          Web access is enabled at:
+              http://kvmmgr.13infotech.com:80/ovirt-engine
+              https://kvmmgr.13infotech.com:443/ovirt-engine
+          Internal CA fingerprint: SHA256: C3:AA:18:18:F9:9C:70:55:63:B1:89:45:98:A8:D5:ED:9E:56:BA:99:21:0E:01:32:65:34:6C:2A:AF:04:F9:68
+          SSH fingerprint: SHA256:UCp7SIfxPfRbGeaYuwXVV8oyBStLrsDHbVQC7MEWNoc
+[ INFO  ] Starting engine service
+          Web access for grafana is enabled at:
+              https://kvmmgr.13infotech.com/ovirt-engine-grafana/
+          Please run the following command on the engine machine kvmmgr.13infotech.com, for SSO to work:
+          systemctl restart ovirt-engine
+
+
+#https://docs.oracle.com/en/operating-systems/oracle-linux/cockpit/cockpit-kvm_install_the_cockpit_virtual_machines_module.html#install-the-cockpit-virtual-machines-module
+
